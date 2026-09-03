@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>EarnBot Dashboard</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --card: #1a1a2e;
+    --card2: #16213e;
+    --accent: #7c3aed;
+    --accent2: #a855f7;
+    --green: #10b981;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #2d2d4e;
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; min-height:100vh; }
+
+  /* NAV */
+  .nav { display:flex; justify-content:space-around; align-items:center;
+    position:fixed; bottom:0; left:0; right:0; background:var(--card);
+    border-top:1px solid var(--border); padding:10px 0 14px; z-index:100; }
+  .nav-btn { display:flex; flex-direction:column; align-items:center; gap:3px;
+    background:none; border:none; color:var(--muted); font-size:10px; cursor:pointer;
+    padding:4px 16px; border-radius:10px; transition:.2s; }
+  .nav-btn.active { color:var(--accent2); }
+  .nav-btn svg { width:22px; height:22px; }
+
+  /* PAGES */
+  .page { display:none; padding:16px 16px 90px; animation:fadeIn .25s ease; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  /* HEADER */
+  .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .header h2 { font-size:20px; font-weight:700; }
+  .badge { background:var(--accent); color:#fff; font-size:11px; padding:3px 10px; border-radius:20px; }
+
+  /* CARDS */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+  .card-title { font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
+  .card-value { font-size:28px; font-weight:800; color:var(--accent2); }
+  .card-sub { font-size:12px; color:var(--muted); margin-top:4px; }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .grid2 .card { margin-bottom:0; }
+  .grid2 .card-value { font-size:20px; }
+
+  /* BALANCE HERO */
+  .balance-hero { background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);
+    border-radius:var(--radius); padding:24px; margin-bottom:14px; text-align:center; }
+  .balance-hero .label { font-size:13px; opacity:.8; margin-bottom:6px; }
+  .balance-hero .amount { font-size:40px; font-weight:900; }
+  .balance-hero .sub { font-size:13px; opacity:.75; margin-top:6px; }
+
+  /* PLAN CARDS */
+  .plan-card { background:var(--card2); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+  .plan-card .plan-info h3 { font-size:16px; font-weight:700; }
+  .plan-card .plan-info p { font-size:12px; color:var(--muted); margin-top:3px; }
+  .plan-card .plan-right { text-align:right; }
+  .plan-card .plan-price { font-size:18px; font-weight:800; color:var(--accent2); }
+  .plan-card .plan-stars { font-size:11px; color:var(--muted); }
+
+  /* INVESTMENT ITEM */
+  .inv-item { background:var(--card2); border-radius:12px; padding:14px; margin-bottom:10px; border-left:3px solid var(--accent); }
+  .inv-item.expired { border-left-color:var(--red); opacity:.7; }
+  .inv-item .inv-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .inv-item .inv-amount { font-size:18px; font-weight:700; }
+  .inv-item .inv-status { font-size:11px; padding:3px 10px; border-radius:20px; }
+  .inv-item .inv-status.active { background:#10b98120; color:var(--green); }
+  .inv-item .inv-status.expired { background:#ef444420; color:var(--red); }
+  .inv-progress { height:4px; background:var(--border); border-radius:4px; margin:8px 0; overflow:hidden; }
+  .inv-progress-bar { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:4px; transition:.5s; }
+  .inv-meta { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
+
+  /* WITHDRAW HISTORY */
+  .w-item { display:flex; justify-content:space-between; align-items:center;
+    padding:12px; background:var(--card2); border-radius:12px; margin-bottom:8px; }
+  .w-item .w-left h4 { font-size:15px; font-weight:600; }
+  .w-item .w-left p { font-size:11px; color:var(--muted); margin-top:2px; }
+  .w-item .w-status { font-size:11px; padding:3px 10px; border-radius:20px; }
+  .w-item .w-status.paid { background:#10b98120; color:var(--green); }
+  .w-item .w-status.pending { background:#f59e0b20; color:var(--yellow); }
+
+  /* REFERRAL */
+  .ref-link-box { background:var(--card2); border:1px dashed var(--accent); border-radius:12px;
+    padding:14px; margin-bottom:14px; word-break:break-all; font-size:13px; color:var(--accent2); }
+  .ref-item { display:flex; align-items:center; gap:10px; padding:10px;
+    background:var(--card2); border-radius:10px; margin-bottom:8px; }
+  .ref-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+
+  /* BUTTONS */
+  .btn { width:100%; padding:14px; border:none; border-radius:12px; font-size:15px;
+    font-weight:700; cursor:pointer; transition:.2s; margin-bottom:10px; }
+  .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; }
+  .btn-primary:active { transform:scale(.97); }
+  .btn-outline { background:transparent; border:1px solid var(--accent); color:var(--accent2); }
+  .btn-copy { background:var(--card2); border:1px solid var(--border); color:var(--text);
+    padding:10px; border-radius:10px; font-size:13px; width:100%; cursor:pointer; margin-top:8px; }
+
+  /* FORM */
+  .form-group { margin-bottom:14px; }
+  .form-group label { font-size:13px; color:var(--muted); display:block; margin-bottom:6px; }
+  .form-group input { width:100%; background:var(--card2); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; color:var(--text); font-size:15px; outline:none; }
+  .form-group input:focus { border-color:var(--accent); }
+
+  /* TOAST */
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-80px);
+    background:#1e1e3a; border:1px solid var(--accent); color:var(--text); padding:12px 20px;
+    border-radius:12px; font-size:14px; z-index:999; transition:.3s; white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* LOADER */
+  .loader { display:flex; justify-content:center; align-items:center; height:200px; }
+  .spinner { width:40px; height:40px; border:3px solid var(--border);
+    border-top-color:var(--accent2); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* SECTION TITLE */
+  .section-title { font-size:13px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.5px; margin-bottom:10px; margin-top:4px; }
+
+  .empty { text-align:center; color:var(--muted); padding:40px 20px; font-size:14px; }
+  .divider { height:1px; background:var(--border); margin:16px 0; }
+  .chip { display:inline-block; background:var(--card2); border:1px solid var(--border);
+    border-radius:20px; padding:4px 12px; font-size:12px; color:var(--muted); margin:3px; }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- HOME PAGE -->
+<div id="page-home" class="page active">
+  <div class="header">
+    <div>
+      <div style="font-size:13px;color:var(--muted)">Welcome back 👋</div>
+      <h2 id="home-name">Loading...</h2>
+    </div>
+    <div class="badge" id="home-badge">Active</div>
+  </div>
+
+  <div class="balance-hero">
+    <div class="label">💰 Available Balance</div>
+    <div class="amount" id="home-balance">₹0.00</div>
+    <div class="sub" id="home-earning">⚡ ₹0/hr earning</div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Total Invested</div>
+      <div class="card-value" id="home-invested">₹0</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Referrals</div>
+      <div class="card-value" id="home-refs">0</div>
+      <div class="card-sub" id="home-ref-earn">₹0 earned</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Daily Earning</div>
+    <div class="card-value" id="home-daily">₹0/day</div>
+    <div class="card-sub" id="home-joined">Joined: —</div>
+  </div>
+
+  <button class="btn btn-primary" onclick="goPage('invest')">💰 Invest Now</button>
+  <button class="btn btn-outline" onclick="goPage('withdraw')">💸 Withdraw</button>
+</div>
+
+<!-- INVEST PAGE -->
+<div id="page-invest" class="page">
+  <div class="header"><h2>💰 Investment Plans</h2></div>
+  <div id="plans-list"><div class="loader"><div class="spinner"></div></div></div>
+</div>
+
+<!-- PORTFOLIO PAGE -->
+<div id="page-portfolio" class="page">
+  <div class="header"><h2>📈 My Portfolio</h2></div>
+  <div id="portfolio-list"><div class="loader"><div class="spinner"></div></div></div>
+</div>
+
+<!-- WITHDRAW PAGE -->
+<div id="page-withdraw" class="page">
+  <div class="header"><h2>💸 Withdraw</h2></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Available Balance</div>
+    <div class="card-value" id="w-balance">₹0.00</div>
+    <div class="card-sub" id="w-min">Min: ₹200</div>
+  </div>
+  <div class="form-group">
+    <label>Amount (₹)</label>
+    <input type="number" id="w-amount" placeholder="Enter amount"/>
+  </div>
+  <div class="form-group">
+    <label>UPI ID</label>
+    <input type="text" id="w-upi" placeholder="yourname@upi"/>
+  </div>
+  <button class="btn btn-primary" onclick="submitWithdraw()">Submit Request</button>
+  <div class="divider"></div>
+  <div class="section-title">Withdrawal History</div>
+  <div id="w-history"></div>
+</div>
+
+<!-- REFER PAGE -->
+<div id="page-refer" class="page">
+  <div class="header"><h2>👥 Refer & Earn</h2></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Referrals</div>
+      <div class="card-value" id="ref-count">0</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Bonus Earned</div>
+      <div class="card-value" id="ref-earned">₹0</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Per Referral Bonus</div>
+    <div class="card-value" id="ref-bonus">₹20</div>
+    <div class="card-sub">Tabhi milega jab referred user plan buy kare</div>
+  </div>
+  <div class="section-title">Your Referral Link</div>
+  <div class="ref-link-box" id="ref-link">Loading...</div>
+  <button class="btn-copy" onclick="copyRef()">📋 Copy Link</button>
+  <div class="divider"></div>
+  <div class="section-title">Your Referrals</div>
+  <div id="ref-list"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="goPage('home')" id="nav-home">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </button>
+  <button class="nav-btn" onclick="goPage('invest')" id="nav-invest">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    Invest
+  </button>
+  <button class="nav-btn" onclick="goPage('portfolio')" id="nav-portfolio">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Portfolio
+  </button>
+  <button class="nav-btn" onclick="goPage('withdraw')" id="nav-withdraw">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    Withdraw
+  </button>
+  <button class="nav-btn" onclick="goPage('refer')" id="nav-refer">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    Refer
+  </button>
+</nav>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+tg.setHeaderColor('#0f0f1a');
+tg.setBackgroundColor('#0f0f1a');
+
+const API = '';  // same origin
+let dashData = null;
+let refLink = '';
+
+// ── Fetch dashboard ──────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${API}/api/dashboard`, {
+      headers: { 'X-Init-Data': tg.initData }
+    });
+    if (!res.ok) throw new Error('Auth failed');
+    dashData = await res.json();
+    renderHome();
+    renderPlans();
+    renderPortfolio();
+    renderWithdraw();
+    renderRefer();
+  } catch(e) {
+    showToast('❌ Load failed: ' + e.message);
+  }
+}
+
+// ── Render Home ──────────────────────────────────────────────────────────────
+function renderHome() {
+  const d = dashData;
+  document.getElementById('home-name').textContent = d.username || 'User';
+  document.getElementById('home-balance').textContent = '₹' + d.balance.toFixed(2);
+  document.getElementById('home-earning').textContent = `⚡ ₹${d.active_hourly}/hr earning`;
+  document.getElementById('home-invested').textContent = '₹' + d.total_invested;
+  document.getElementById('home-refs').textContent = d.referral_count;
+  document.getElementById('home-ref-earn').textContent = '₹' + d.referral_bonus_total + ' earned';
+  document.getElementById('home-daily').textContent = '₹' + d.active_daily + '/day';
+  document.getElementById('home-joined').textContent = 'Joined: ' + d.joined_at;
+  document.getElementById('w-balance').textContent = '₹' + d.balance.toFixed(2);
+  document.getElementById('w-min').textContent = 'Min: ₹' + d.min_withdraw;
+}
+
+// ── Render Plans ─────────────────────────────────────────────────────────────
+function renderPlans() {
+  const el = document.getElementById('plans-list');
+  el.innerHTML = '';
+  dashData.plans.forEach(p => {
+    const total = p.daily * p.days;
+    el.innerHTML += `
+      <div class="plan-card">
+        <div class="plan-info">
+          <h3>${p.name} Plan</h3>
+          <p>₹${p.daily}/day • ${p.days} days</p>
+          <p style="color:var(--green);font-size:12px;margin-top:4px">Total Return: ₹${total}</p>
+          <div style="margin-top:8px">
+            <span class="chip">25% Daily</span>
+            <span class="chip">${p.stars}⭐</span>
+          </div>
+        </div>
+        <div class="plan-right">
+          <div class="plan-price">₹${p.amount}</div>
+          <div class="plan-stars">${p.stars} Stars</div>
+          <button class="btn btn-primary" style="margin-top:10px;padding:8px 16px;width:auto;font-size:13px"
+            onclick="buyPlan(${p.id})">Buy</button>
+        </div>
+      </div>`;
+  });
+}
+
+// ── Render Portfolio ─────────────────────────────────────────────────────────
+function renderPortfolio() {
+  const el = document.getElementById('portfolio-list');
+  const invs = dashData.investments;
+  if (!invs.length) {
+    el.innerHTML = '<div class="empty">📭 Koi investment nahi hai.<br>Invest karo abhi!</div>';
+    return;
+  }
+  el.innerHTML = '';
+  invs.forEach(inv => {
+    const pct = inv.expired ? 100 : Math.max(5, 100 - (inv.days_left / 20 * 100));
+    el.innerHTML += `
+      <div class="inv-item ${inv.expired ? 'expired' : ''}">
+        <div class="inv-top">
+          <div class="inv-amount">${inv.plan_name} — ₹${inv.amount}</div>
+          <span class="inv-status ${inv.expired ? 'expired' : 'active'}">${inv.expired ? '⛔ Expired' : '✅ Active'}</span>
+        </div>
+        <div class="inv-progress"><div class="inv-progress-bar" style="width:${pct}%"></div></div>
+        <div class="inv-meta">
+          <span>₹${inv.per_hour}/hr • ₹${inv.daily}/day</span>
+          <span>${inv.expired ? 'Expired' : inv.days_left + 'd left'}</span>
+        </div>
+        <div class="inv-meta" style="margin-top:4px">
+          <span>Started: ${inv.started_at}</span>
+          <span>Ends: ${inv.expires_at || '—'}</span>
+        </div>
+      </div>`;
+  });
+}
+
+// ── Render Withdraw ──────────────────────────────────────────────────────────
+async function renderWithdraw() {
+  const el = document.getElementById('w-history');
+  try {
+    const res = await fetch(`${API}/api/withdrawals`, {
+      headers: { 'X-Init-Data': tg.initData }
+    });
+    const data = await res.json();
+    if (!data.length) { el.innerHTML = '<div class="empty">Koi withdrawal nahi hai.</div>'; return; }
+    el.innerHTML = '';
+    data.forEach(w => {
+      el.innerHTML += `
+        <div class="w-item">
+          <div class="w-left">
+            <h4>₹${w.amount}</h4>
+            <p>${w.wallet} • ${w.date}</p>
+          </div>
+          <span class="w-status ${w.status}">${w.status === 'paid' ? '✅ Paid' : '⏳ Pending'}</span>
+        </div>`;
+    });
+  } catch(e) {}
+}
+
+// ── Render Refer ─────────────────────────────────────────────────────────────
+function renderRefer() {
+  const d = dashData;
+  document.getElementById('ref-count').textContent = d.referral_count;
+  document.getElementById('ref-earned').textContent = '₹' + d.referral_bonus_total;
+  document.getElementById('ref-bonus').textContent = '₹' + d.referral_bonus;
+  const botUser = tg.initDataUnsafe?.user?.id;
+  refLink = `https://t.me/YourBotUsername?start=ref_${botUser}`;
+  document.getElementById('ref-link').textContent = refLink;
+  const el = document.getElementById('ref-list');
+  if (!d.referrals.length) {
+    el.innerHTML = '<div class="empty">Abhi tak koi referral nahi.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  d.referrals.forEach(r => {
+    const letter = (r.username || 'U')[0].toUpperCase();
+    el.innerHTML += `
+      <div class="ref-item">
+        <div class="ref-avatar">${letter}</div>
+        <div>
+          <div style="font-weight:600">@${r.username || 'Unknown'}</div>
+          <div style="font-size:12px;color:var(--green)">+₹${d.referral_bonus} bonus</div>
+        </div>
+      </div>`;
+  });
+}
+
+// ── Buy Plan ─────────────────────────────────────────────────────────────────
+function buyPlan(planId) {
+  tg.showPopup({
+    title: 'Plan Buy Karo',
+    message: 'Telegram bot mein jaake payment karo. /start type karo aur plan select karo.',
+    buttons: [{ type: 'ok', text: 'OK' }]
+  });
+}
+
+// ── Submit Withdraw ──────────────────────────────────────────────────────────
+async function submitWithdraw() {
+  const amount = parseFloat(document.getElementById('w-amount').value);
+  const upi = document.getElementById('w-upi').value.trim();
+  if (!amount || !upi) { showToast('❌ Amount aur UPI daalo'); return; }
+  try {
+    const res = await fetch(`${API}/api/withdraw`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Init-Data': tg.initData },
+      body: JSON.stringify({ amount, upi })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail);
+    showToast('✅ ' + data.message);
+    document.getElementById('w-amount').value = '';
+    document.getElementById('w-upi').value = '';
+    await loadDashboard();
+  } catch(e) {
+    showToast('❌ ' + e.message);
+  }
+}
+
+// ── Copy Ref Link ────────────────────────────────────────────────────────────
+function copyRef() {
+  navigator.clipboard.writeText(refLink).then(() => showToast('✅ Link copied!'));
+}
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+tg.ready();
+loadDashboard();
+</script>
+</body>
+</html>
