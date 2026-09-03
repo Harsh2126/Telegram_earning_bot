@@ -39,7 +39,6 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🚫 Aapka account banned hai. Admin se contact karo.")
         return
     keyboard = [
-        [InlineKeyboardButton("🌐 Open Dashboard", web_app=__import__('telegram').WebAppInfo(url="https://YOUR_DOMAIN/static/index.html"))],
         [InlineKeyboardButton("💰 Invest", callback_data="invest"),
          InlineKeyboardButton("📊 Dashboard", callback_data="dashboard")],
         [InlineKeyboardButton("💸 Withdraw", callback_data="withdraw"),
