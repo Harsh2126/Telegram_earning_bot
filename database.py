@@ -1,7 +1,7 @@
 import sqlite3, os
 from datetime import datetime
 
-DB = os.path.join(os.environ.get("DATA_DIR", "/data"), "bot.db")
+DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot.db")
 
 def init_db():
     conn = sqlite3.connect(DB)
