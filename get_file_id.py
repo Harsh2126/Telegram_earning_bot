@@ -13,3 +13,9 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.VIDEO, get_id))
 print("Bot ready — ab apna video bhejo caption mein plan ka naam likhke (Starter/Basic/Pro/Premium)")
 app.run_polling()
+x=10
+y=20
+sum=x+y
+mul=x*y
+sub=x-y
+div=x/y
