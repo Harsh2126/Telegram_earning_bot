@@ -5,6 +5,7 @@ DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot.db")
 x=10
 y=20
 sum=x+y
+sub=x-y
 
 def init_db():
     conn = sqlite3.connect(DB)
