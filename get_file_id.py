@@ -18,3 +18,4 @@ y=20
 sum=x+y
 mul=x*y
 sub=x-y
+div=x/y
